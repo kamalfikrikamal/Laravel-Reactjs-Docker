@@ -1,0 +1,70 @@
+version: '3.7'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: php_base
+      args:
+        user: laravelreactjs
+        uid: 1000
+    restart: unless-stopped
+    image: laravelreactjs
+    container_name: laravelreactjs-app
+    ports:
+      - 5173:5173
+    working_dir: /var/www/
+    volumes:
+      - .:/var/www:rw
+    networks:
+      - laravelreactjs
+
+  mysql:
+    image: mysql:8.4
+    container_name: laravelreactjs-db
+    restart: unless-stopped
+    ports:
+      - ${DB_PORT}:3306
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - laravelreactjs
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravelreactjs-nginx
+    restart: unless-stopped
+    ports:
+      - 80:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - laravelreactjs
+
+  phpmyadmin:
+    image: phpmyadmin:5.2.1
+    container_name: laravelreactjs-phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: ${DB_PORT}
+      PMA_USER: ${DB_USERNAME}
+      PMA_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - 8081:80
+    networks:
+      - laravelreactjs
+
+networks:
+  laravelreactjs:
+    driver: bridge
